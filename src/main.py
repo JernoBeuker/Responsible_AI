@@ -73,30 +73,20 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data):
 
     for sensitive in ["Race", "Age"]:
         print(sensitive)
-        print("demographic parity diff /n ratio")
+        print("demographic parity diff")
         print(
             fm.demographic_parity_difference(
                 y_test, y_pred, sensitive_features=sensitive_data[sensitive]
             )
         )
-        print(
-            fm.demographic_parity_ratio(
-                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
-            )
-        )
-        print("equal opportunity diff /n ratio")
+         
+        print("equal opportunity diff")
 
         print(
             fm.equal_opportunity_difference(
                 y_test, y_pred, sensitive_features=sensitive_data[sensitive]
             )
         )
-        print(
-            fm.equal_opportunity_ratio(
-                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
-            )
-        )
-        print("equalized odds diff /n ratio")
 
     metrics = {
         "accuracy": accuracy_score,
