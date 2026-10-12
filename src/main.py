@@ -1,3 +1,4 @@
+import fairlearn.metrics as fm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -47,7 +48,6 @@ def train_model(X_train, y_train):
 def evaluate_model(classifier, X_test, y_test, sensitive_data):
     # Make the test predictions and evaluate the model using the MetricFrame
     y_pred = classifier.predict_proba(X_test)[:, 1] >= 0.1
-    print("Race")
     racemf = MetricFrame(
         metrics=balanced_accuracy_score,
         y_true=y_test,
@@ -70,6 +70,44 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data):
     for mf in allmf:
         mf.overall.item()
         print(mf.by_group)
+
+    for sensitive in ["Race", "Age"]:
+        print(sensitive)
+        print("demographic parity diff /n ratio")
+        print(
+            fm.demographic_parity_difference(
+                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
+            )
+        )
+        print(
+            fm.demographic_parity_ratio(
+                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
+            )
+        )
+        print("equal opportunity diff /n ratio")
+
+        print(
+            fm.equal_opportunity_difference(
+                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
+            )
+        )
+        print(
+            fm.equal_opportunity_ratio(
+                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
+            )
+        )
+        print("equalized odds diff /n ratio")
+
+        print(
+            fm.equalized_odds_difference(
+                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
+            )
+        )
+        print(
+            fm.equalized_odds_ratio(
+                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
+            )
+        )
 
     metrics = {
         "accuracy": accuracy_score,
