@@ -14,10 +14,11 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
-from .fairness_eval import feature_analysis
+from fairness_eval import feature_analysis
 
 SEED = 42  # set seed for consistent results
 np.random.seed(SEED)
+
 
 def transform_data(data):
     """
@@ -25,7 +26,7 @@ def transform_data(data):
     Expanding on Fairlearns preprocessing, we will also extract the race column for analysis.
     See Fairlearns documentation here: https://github.com/fairlearn/talks/blob/main/2021_scipy_tutorial/preprocess.py
     """
-    
+
     # Getting X without the targets.
     X = data.data.copy()
     X.drop(columns=["readmitted", "readmit_binary"], inplace=True)
@@ -36,22 +37,39 @@ def transform_data(data):
     x_ohe = pd.get_dummies(X)
     return race, age, x_ohe, y
 
+
 def train_model(X_train, y_train):
     classifier = LogisticRegression(max_iter=1000)
     classifier.fit(X_train, y_train)
     return classifier
 
-def evaluate_model(classifier, X_test, y_test, A_test):
+
+def evaluate_model(classifier, X_test, y_test, sensitive_data):
     # Make the test predictions and evaluate the model using the MetricFrame
     y_pred = classifier.predict_proba(X_test)[:, 1] >= 0.1
-    mf = MetricFrame(
+    print("Race")
+    racemf = MetricFrame(
         metrics=balanced_accuracy_score,
         y_true=y_test,
         y_pred=y_pred,
-        sensitive_features=A_test,
+        sensitive_features=sensitive_data["Race"],
     )
-    mf.overall.item()
-    print(mf.by_group)
+    agemf = MetricFrame(
+        metrics=balanced_accuracy_score,
+        y_true=y_test,
+        y_pred=y_pred,
+        sensitive_features=sensitive_data["Age"],
+    )
+    intersectionmf = MetricFrame(
+        metrics=balanced_accuracy_score,
+        y_true=y_test,
+        y_pred=y_pred,
+        sensitive_features=sensitive_data,
+    )
+    allmf = [racemf, agemf, intersectionmf]
+    for mf in allmf:
+        mf.overall.item()
+        print(mf.by_group)
 
     metrics = {
         "accuracy": accuracy_score,
@@ -62,7 +80,10 @@ def evaluate_model(classifier, X_test, y_test, A_test):
         "count": count,
     }
     metric_frame = MetricFrame(
-        metrics=metrics, y_true=y_test, y_pred=y_pred, sensitive_features=A_test
+        metrics=metrics,
+        y_true=y_test,
+        y_pred=y_pred,
+        sensitive_features=sensitive_data,
     )
     plots = metric_frame.by_group.plot.bar(
         subplots=True,
@@ -74,24 +95,28 @@ def evaluate_model(classifier, X_test, y_test, A_test):
 
     plots[0][0].figure.savefig("./plots/fairnessplots.png")
 
+
 def main():
     # Load the diabetes hospital dataset and transform it
     data = fetch_diabetes_hospital(as_frame=True)
     race, age, X_ohe, y = transform_data(data)
-    
+
     # Analyze and print/plot by race and age
     feature_analysis(race, y, "race")
     feature_analysis(age, y, "age")
 
     # Train test split
-    X_train, X_test, y_train, y_test, _, A_test = train_test_split(
-        X_ohe, y, race, random_state=SEED, stratify=y
+    X_train, X_test, y_train, y_test, _, race_test, _, age_test = train_test_split(
+        X_ohe, y, race, age, random_state=SEED, stratify=y
     )
-
     # Train and Evaluate the model
+    sensitive_data = pd.DataFrame(
+        np.stack([race_test, age_test], axis=1), columns=["Race", "Age"]
+    )
     model = train_model(X_train, y_train)
-    evaluate_model(model, X_test, y_test, A_test)
+    evaluate_model(model, X_test, y_test, sensitive_data)
     pass
+
 
 if __name__ == "__main__":
     main()
