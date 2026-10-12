@@ -49,19 +49,19 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data):
     # Make the test predictions and evaluate the model using the MetricFrame
     y_pred = classifier.predict_proba(X_test)[:, 1] >= 0.1
     racemf = MetricFrame(
-        metrics=balanced_accuracy_score,
+        metrics=false_negative_rate,
         y_true=y_test,
         y_pred=y_pred,
         sensitive_features=sensitive_data["Race"],
     )
     agemf = MetricFrame(
-        metrics=balanced_accuracy_score,
+        metrics=false_negative_rate,
         y_true=y_test,
         y_pred=y_pred,
         sensitive_features=sensitive_data["Age"],
     )
     intersectionmf = MetricFrame(
-        metrics=balanced_accuracy_score,
+        metrics=false_negative_rate,
         y_true=y_test,
         y_pred=y_pred,
         sensitive_features=sensitive_data,
@@ -97,17 +97,6 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data):
             )
         )
         print("equalized odds diff /n ratio")
-
-        print(
-            fm.equalized_odds_difference(
-                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
-            )
-        )
-        print(
-            fm.equalized_odds_ratio(
-                y_test, y_pred, sensitive_features=sensitive_data[sensitive]
-            )
-        )
 
     metrics = {
         "accuracy": accuracy_score,
