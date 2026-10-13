@@ -1,3 +1,5 @@
+# Adapted from fairlearns preprocessing of the same dataset can be found on https://github.com/fairlearn/talks/blob/main/2021_scipy_tutorial/preprocess.py
+
 import pandas as pd
 from pathlib import Path
 import os
@@ -14,13 +16,13 @@ def main():
     df.loc[:, "readmit_binary"] = df["readmitted"] != "NO"
     # Replace missing values and re-code categories
     df.loc[:, "age"] = df.age.replace({"?": ""})
-    df.loc[:, "payer_code"] = df["payer_code"].replace({"?", "Unknown"})
+    df.loc[:, "payer_code"] = df["payer_code"].replace({"?": "Unknown"})
     df.loc[:, "medical_specialty"] = df["medical_specialty"].replace({"?": "Missing"})
     df.loc[:, "race"] = df["race"].replace({"?": "Unknown"})
 
-    df.loc[:, "admission_source_id"] = df["admission_source_id"].replace(
-        {1: "Referral", 2: "Referral", 3: "Referral", 7: "Emergency"}
-    )
+    # df.loc[:, "admission_source_id"] = df["admission_source_id"].replace(
+    #     {1: "Referral", 2: "Referral", 3: "Referral", 7: "Emergency"}
+    # )
     df.loc[:, "age"] = df["age"].replace(
         ["[0-10)", "[10-20)", "[20-30)"], "30 years or younger"
     )
@@ -32,13 +34,13 @@ def main():
     )
 
     # Clean various medical codes
-    df.loc[:, "discharge_disposition_id"] = df.discharge_disposition_id.apply(
-        lambda x: "Discharged to Home" if x == 1 else "Other"
-    )
+    # df.loc[:, "discharge_disposition_id"] = df.discharge_disposition_id.apply(
+    #     lambda x: "Discharged to Home" if x == 1 else "Other"
+    # )
 
-    df.loc[:, "admission_source_id"] = df["admission_source_id"].apply(
-        lambda x: x if x in ["Emergency", "Referral"] else "Other"
-    )
+    # df.loc[:, "admission_source_id"] = df["admission_source_id"].apply(
+    #     lambda x: x if x in ["Emergency", "Referral"] else "Other"
+    # )
     # Re-code Medical Specialties and Primary Diagnosis
     specialties = [
         "Missing",
@@ -48,9 +50,9 @@ def main():
         "Cardiology",
         "Surgery",
     ]
-    df.loc[:, "medical_specialty"] = df["medical_specialty"].apply(
-        lambda x: x if x in specialties else "Other"
-    )
+    # df.loc[:, "medical_specialty"] = df["medical_specialty"].apply(
+    #     lambda x: x if x in specialties else "Other"
+    # )
     #
     df.loc[:, "primary_diagnosis"] = df["primary_diagnosis"].replace(
         regex={
@@ -66,9 +68,9 @@ def main():
         "Genitourinary Issues",
         "Musculoskeltal Issues",
     ]
-    df.loc[:, "primary_diagnosis"] = df["primary_diagnosis"].apply(
-        lambda x: x if x in diagnoses else "Other"
-    )
+    # df.loc[:, "primary_diagnosis"] = df["primary_diagnosis"].apply(
+    #     lambda x: x if x in diagnoses else "Other"
+    # )
 
     # Binarize and bin features
     df.loc[:, "medicare"] = df.payer_code == "MC"
@@ -110,3 +112,6 @@ def main():
 
     final_df = df.loc[:, cols_to_keep]
     final_df.to_csv(data_path / "diabetic_preprocessed.csv", index=False)
+
+if __name__ == "__main__":
+    main()

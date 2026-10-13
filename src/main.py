@@ -13,11 +13,11 @@ from fairlearn.metrics import (
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
-from sklearn.model_selection import train_test_split, GroupShuffleSplit
+from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.tree import DecisionTreeClassifier
 
-from fairness_eval import feature_analysis
+from .fairness_eval import feature_analysis
 
 SEED = 42  # set seed for consistent results
 np.random.seed(SEED)
@@ -31,12 +31,12 @@ def transform_data(data):
     """
 
     # Getting X without the targets.
-    X = data.data.copy()
-    X.drop(columns=["readmitted", "readmit_binary"], inplace=True)
+    X = data
+    y = data["readmit_30_days"]
+    X.drop(columns=["readmitted", "readmit_binary", "readmit_30_days"], inplace=True)
 
     race = X["race"]
     age = X["age"]
-    y = data.target
     x_ohe = pd.get_dummies(X)
     return race, age, x_ohe, y
 
@@ -135,8 +135,9 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data):
 
 def main():
     # Load the diabetes hospital dataset and transform it
-    data = fetch_diabetes_hospital(as_frame=True)
-    print(data.data.columns.tolist())
+    # data = fetch_diabetes_hospital(as_frame=True)
+    data = pd.read_csv("data/diabetic_preprocessed.csv")
+    # print(data.data.columns.tolist())
     race, age, X_ohe, y = transform_data(data)
 
     # Analyze and print/plot by race and age
@@ -150,17 +151,12 @@ def main():
 
     gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=SEED)
 
-    train_idx, test_idx = next(gss.split(X_ohe, y, groups = data["patient_nbr"]))
+    train_idx, test_idx = next(gss.split(X_ohe, y, groups=data["patient_nbr"]))
 
     X_train, X_test = X_ohe.iloc[train_idx], X_ohe.iloc[test_idx]
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
     race_train, race_test = race.iloc[train_idx], race.iloc[test_idx]
     age_train, age_test = age.iloc[train_idx], age.iloc[test_idx]
-
-
-
-
-
 
     # Train and Evaluate the model
     sensitive_data = pd.DataFrame(
