@@ -11,7 +11,7 @@ from .utils import feature_analysis, evaluate_model
 SEED = 42  # set seed for consistent results
 np.random.seed(SEED)
 GSS = False
-THRESHOLD = False
+THRESHOLD = True
 
 
 def transform_data(data):
@@ -40,7 +40,7 @@ def train_model(X_train, y_train, race_train, threshold=True):
         threshold_optimizer = post.ThresholdOptimizer(
             estimator=pipeline,
             constraints="false_negative_rate_parity",
-            objective="true_negative_rate",
+            objective="true_positive_rate",
             predict_method="predict_proba",
             prefit=False,
         )
