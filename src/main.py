@@ -65,6 +65,8 @@ def train_test_split_data(patient_nbr,X_ohe, y, race, age, group_shuffle_split=T
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
         race_train, race_test = race.iloc[train_idx], race.iloc[test_idx]
         age_train, age_test = age.iloc[train_idx], age.iloc[test_idx]
+        X_train.drop(columns=["patient_nbr"], inplace=True)
+        X_test.drop(columns=["patient_nbr"], inplace=True)
 
     else:
         X_train, X_test, y_train, y_test, race_train, race_test, age_train, age_test = (
