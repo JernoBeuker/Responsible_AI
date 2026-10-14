@@ -11,7 +11,7 @@ from .analysis import feature_analysis, evaluate_model
 SEED = 42  # set seed for consistent results
 np.random.seed(SEED)
 GSS = True
-THRESHOLD = True
+THRESHOLD = False
 
 
 def transform_data(data):

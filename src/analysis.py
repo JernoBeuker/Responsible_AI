@@ -59,6 +59,8 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data, threshold=False):
     print("Confusion matrix:")
     print(confusion_matrix(y_test, y_pred))
     print("Predicted positive rate:", y_pred.mean())
+    print(f"Accuracy: {accuracy_score(y_test, y_pred)}")
+    print(f"Balanced accuracy: {balanced_accuracy_score(y_test, y_pred)}")
 
     racemf = MetricFrame(
         metrics={
@@ -127,7 +129,7 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data, threshold=False):
         metrics=metrics,
         y_true=y_test,
         y_pred=y_pred,
-        sensitive_features=sensitive_data,
+        sensitive_features=sensitive_data["Race"],
     )
     plots = metric_frame.by_group.plot.bar(
         subplots=True,
