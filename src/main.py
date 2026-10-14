@@ -89,7 +89,7 @@ def main():
     )
 
     model, threshold_optimizer = train_model(X_train, y_train, race_train, THRESHOLD)
-    evaluate_model(model, X_test, y_test, sensitive_data)
+    evaluate_model(model, X_test, y_test, sensitive_data, THRESHOLD)
     if threshold_optimizer:    
         post.plot_threshold_optimizer(threshold_optimizer)
 

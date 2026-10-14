@@ -39,12 +39,15 @@ def feature_analysis(feature, y, str_name:str):
     print(f"ratio of positives per {str_name}: ")
     print(positive_ratio)
 
-def evaluate_model(classifier, X_test, y_test, sensitive_data):
+def evaluate_model(classifier, X_test, y_test, sensitive_data, threshold=False):
     # Make the test predictions and evaluate the model using the MetricFrame
-    # y_pred = classifier.predict_proba(X_test)[:, 1] >= 0.1
-    y_pred = classifier.predict(
-        X_test, sensitive_features=sensitive_data["Race"], random_state=SEED
-    )
+    if threshold:    
+        y_pred = classifier.predict(
+            X_test, sensitive_features=sensitive_data["Race"], random_state=SEED
+        )
+    else:
+        y_pred = classifier.predict_proba(X_test)[:, 1] >= 0.1
+
     racemf = MetricFrame(
         metrics={
             "balanced_accuracy": balanced_accuracy_score,
