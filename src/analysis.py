@@ -11,6 +11,11 @@ from fairlearn.metrics import (
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import matplotlib.pyplot as plt
 import fairlearn.metrics as fm
+from sklearn.metrics import (
+    roc_auc_score,
+    average_precision_score,
+    confusion_matrix,
+)
 
 
 SEED = 42
@@ -47,6 +52,13 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data, threshold=False):
         )
     else:
         y_pred = classifier.predict_proba(X_test)[:, 1] >= 0.1
+        y_prob = classifier.predict_proba(X_test)[:, 1]
+        print("ROC-AUC:", roc_auc_score(y_test, y_prob))
+        print("Average precision:", average_precision_score(y_test, y_prob))
+
+    print("Confusion matrix:")
+    print(confusion_matrix(y_test, y_pred))
+    print("Predicted positive rate:", y_pred.mean())
 
     racemf = MetricFrame(
         metrics={

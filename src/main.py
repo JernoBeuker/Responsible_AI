@@ -2,15 +2,15 @@ import fairlearn.postprocessing as post
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
 
-from .utils import feature_analysis, evaluate_model
+from .analysis import feature_analysis, evaluate_model
 
 SEED = 42  # set seed for consistent results
 np.random.seed(SEED)
-GSS = False
+GSS = True
 THRESHOLD = True
 
 
@@ -33,12 +33,17 @@ def transform_data(data):
     return patient_nbr, race, age, x_ohe, y
 
 def train_model(X_train, y_train, race_train, threshold=True):
-    model = LogisticRegression(max_iter=1000)
+    model = Pipeline([
+        ("scaler", StandardScaler()),
+        ("classifier", LogisticRegression(
+            max_iter=1000,
+            solver="lbfgs",
+            random_state=SEED,
+        ))
+    ])
     if threshold:
-        pipeline = Pipeline(steps=[("classifier", model)])
-
         threshold_optimizer = post.ThresholdOptimizer(
-            estimator=pipeline,
+            estimator=model,
             constraints="false_negative_rate_parity",
             objective="true_positive_rate",
             predict_method="predict_proba",
@@ -47,9 +52,8 @@ def train_model(X_train, y_train, race_train, threshold=True):
         model = threshold_optimizer.fit(X_train, y_train, sensitive_features=race_train)
         return model, threshold_optimizer
     else:
-        classifier = LogisticRegression(max_iter=1000)
-        classifier.fit(X_train, y_train)
-        return classifier, False
+        model.fit(X_train, y_train)
+        return model, False
 
 def train_test_split_data(patient_nbr,X_ohe, y, race, age, group_shuffle_split=True):
     if group_shuffle_split:
