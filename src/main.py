@@ -10,6 +10,8 @@ from .utils import feature_analysis, evaluate_model
 
 SEED = 42  # set seed for consistent results
 np.random.seed(SEED)
+GSS = False
+THRESHOLD = False
 
 
 def transform_data(data):
@@ -30,22 +32,27 @@ def transform_data(data):
     x_ohe = pd.get_dummies(X)
     return patient_nbr, race, age, x_ohe, y
 
-def train_model(X_train, y_train, race_train):
+def train_model(X_train, y_train, race_train, threshold=True):
     model = LogisticRegression(max_iter=1000)
-    pipeline = Pipeline(steps=[("classifier", model)])
+    if threshold:
+        pipeline = Pipeline(steps=[("classifier", model)])
 
-    threshold_optimizer = post.ThresholdOptimizer(
-        estimator=pipeline,
-        constraints="false_negative_rate_parity",
-        objective="true_negative_rate",
-        predict_method="predict_proba",
-        prefit=False,
-    )
-    model = threshold_optimizer.fit(X_train, y_train, sensitive_features=race_train)
-    return model, threshold_optimizer
+        threshold_optimizer = post.ThresholdOptimizer(
+            estimator=pipeline,
+            constraints="false_negative_rate_parity",
+            objective="true_negative_rate",
+            predict_method="predict_proba",
+            prefit=False,
+        )
+        model = threshold_optimizer.fit(X_train, y_train, sensitive_features=race_train)
+        return model, threshold_optimizer
+    else:
+        classifier = LogisticRegression(max_iter=1000)
+        classifier.fit(X_train, y_train)
+        return classifier, False
 
-def train_test_split_data(patient_nbr,X_ohe, y, race, age, GSS=True):
-    if GSS:
+def train_test_split_data(patient_nbr,X_ohe, y, race, age, group_shuffle_split=True):
+    if group_shuffle_split:
         gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=SEED)
     
         train_idx, test_idx = next(gss.split(X_ohe, y, patient_nbr))
@@ -74,16 +81,17 @@ def main():
 
     # Train test split
     X_train, X_test, y_train, y_test, race_train, race_test, \
-    age_train, age_test = train_test_split_data(patient_nbr, X_ohe, y, race, age, False)
+    age_train, age_test = train_test_split_data(patient_nbr, X_ohe, y, race, age, GSS)
 
     # Train and Evaluate the model
     sensitive_data = pd.DataFrame(
         np.stack([race_test, age_test], axis=1), columns=["Race", "Age"]
     )
 
-    model, threshold_optimizer = train_model(X_train, y_train, race_train)
+    model, threshold_optimizer = train_model(X_train, y_train, race_train, THRESHOLD)
     evaluate_model(model, X_test, y_test, sensitive_data)
-    post.plot_threshold_optimizer(threshold_optimizer)
+    if threshold_optimizer:    
+        post.plot_threshold_optimizer(threshold_optimizer)
 
 
 if __name__ == "__main__":
