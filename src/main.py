@@ -1,12 +1,12 @@
 import fairlearn.postprocessing as post
 import numpy as np
 import pandas as pd
-from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
-from .analysis import feature_analysis, evaluate_model
+from .analysis import evaluate_model, feature_analysis
 
 SEED = 42  # set seed for consistent results
 np.random.seed(SEED)
@@ -26,31 +26,28 @@ def transform_data(data):
 
     race = data["race"].copy()
     age = data["age"].copy()
-    X = data.drop(columns=[
-        "readmitted",
-        "readmit_binary",
-        "readmit_30_days",
-        "patient_nbr"]).copy()
-
+    X = data.drop(
+        columns=["readmitted", "readmit_binary", "readmit_30_days", "patient_nbr"]
+    ).copy()
 
     X_ohe = pd.get_dummies(X)
     return patient_nbr, race, age, X_ohe, y
 
+
 def train_model(X_train, y_train, X_val, y_val, race_val, threshold=True):
     # Train the model
-    model = Pipeline([
-        ("scaler", StandardScaler()),
-        ("classifier", LogisticRegression(
-            max_iter=10000,
-            random_state=SEED
-        ))
-    ])
+    model = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            ("classifier", LogisticRegression(max_iter=10000, random_state=SEED)),
+        ]
+    )
     model.fit(X_train, y_train)
 
     if threshold:
         threshold_optimizer = post.ThresholdOptimizer(
             estimator=model,
-            constraints="false_negative_rate_parity",
+            constraints="equalized_odds",  # this makes both true_positive and false_positive rate equal across groups
             objective="balanced_accuracy_score",
             predict_method="predict_proba",
             prefit=True,
@@ -60,25 +57,18 @@ def train_model(X_train, y_train, X_val, y_val, race_val, threshold=True):
     else:
         return model, False
 
-from sklearn.model_selection import GroupShuffleSplit
 
 def train_val_test_split_data(X, y, race, age, patient_nbr):
     # First split: 80% train+validation, 20% test
-    gss = GroupShuffleSplit(
-        n_splits=1,
-        test_size=0.2,
-        random_state=42
-    )
+    gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
 
-    train_val_idx, test_idx = next(
-        gss.split(X, y, groups=patient_nbr)
-    )
+    train_val_idx, test_idx = next(gss.split(X, y, groups=patient_nbr))
 
     train_idx_rel, val_idx_rel = next(
         gss.split(
             X.iloc[train_val_idx],
             y.iloc[train_val_idx],
-            groups=patient_nbr.iloc[train_val_idx]
+            groups=patient_nbr.iloc[train_val_idx],
         )
     )
 
@@ -86,26 +76,17 @@ def train_val_test_split_data(X, y, race, age, patient_nbr):
     val_idx = train_val_idx[val_idx_rel]
 
     def subset(indices):
-        return (
-            X.iloc[indices],
-            y.iloc[indices],
-            race.iloc[indices],
-            age.iloc[indices]
-        )
+        return (X.iloc[indices], y.iloc[indices], race.iloc[indices], age.iloc[indices])
 
-    return (
-        subset(train_idx),
-        subset(val_idx),
-        subset(test_idx)
-    )
+    return (subset(train_idx), subset(val_idx), subset(test_idx))
 
 
 # def train_test_split_data(patient_nbr,X_ohe, y, race, age, group_shuffle_split=True):
 #     if group_shuffle_split:
 #         gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=SEED)
-    
+
 #         train_idx, test_idx = next(gss.split(X_ohe, y, patient_nbr))
-    
+
 #         X_train, X_test = X_ohe.iloc[train_idx], X_ohe.iloc[test_idx]
 #         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 #         race_train, race_test = race.iloc[train_idx], race.iloc[test_idx]
@@ -118,14 +99,14 @@ def train_val_test_split_data(X, y, race, age, patient_nbr):
 #         X_train, X_test, y_train, y_test, race_train, race_test, age_train, age_test = (
 #                     train_test_split(X_ohe, y, race, age, random_state=SEED, stratify=y)
 #                 )
-        
+
 #     return X_train, X_test, y_train, y_test, race_train, race_test, age_train, age_test
-    
+
+
 def main():
     # Load the diabetes hospital dataset and transform it
     data = pd.read_csv("data/diabetic_preprocessed.csv")
     patient_nbr, race, age, X_ohe, y = transform_data(data)
-    
 
     # Analyze and print/plot by race and age
     feature_analysis(race, y, "race")
@@ -139,10 +120,12 @@ def main():
     )
 
     # Train and Evaluate the model
-    model, threshold_optimizer = train_model(train[0], train[1], val[0], val[1], val[2], THRESHOLD)
+    model, threshold_optimizer = train_model(
+        train[0], train[1], val[0], val[1], val[2], THRESHOLD
+    )
     evaluate_model(model, test[0], test[1], sensitive_data, THRESHOLD)
-    
-    if threshold_optimizer:    
+
+    if threshold_optimizer:
         post.plot_threshold_optimizer(threshold_optimizer)
 
 

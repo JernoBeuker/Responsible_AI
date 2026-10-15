@@ -1,3 +1,4 @@
+import fairlearn.metrics as fm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -8,20 +9,21 @@ from fairlearn.metrics import (
     false_positive_rate,
     selection_rate,
 )
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
-import matplotlib.pyplot as plt
-import fairlearn.metrics as fm
 from sklearn.metrics import (
-    roc_auc_score,
+    accuracy_score,
     average_precision_score,
+    balanced_accuracy_score,
     confusion_matrix,
+    precision_score,
+    recall_score,
+    roc_auc_score,
 )
-
 
 SEED = 42
 np.random.seed(SEED)  # set seed for consistent results
 
-def feature_analysis(feature, y, str_name:str):
+
+def feature_analysis(feature, y, str_name: str):
     # After fairlearns preprocessing there are no missing values.
     ft_counts = feature.value_counts()
 
@@ -43,10 +45,12 @@ def feature_analysis(feature, y, str_name:str):
     print(positive_counts)
     print(f"ratio of positives per {str_name}: ")
     print(positive_ratio)
+    print(y.value_counts())
+
 
 def evaluate_model(classifier, X_test, y_test, sensitive_data, threshold=False):
     # Make the test predictions and evaluate the model using the MetricFrame
-    if threshold:    
+    if threshold:
         y_pred = classifier.predict(
             X_test, sensitive_features=sensitive_data["Race"], random_state=SEED
         )
@@ -55,6 +59,10 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data, threshold=False):
         y_prob = classifier.predict_proba(X_test)[:, 1]
         print("ROC-AUC:", roc_auc_score(y_test, y_prob))
         print("Average precision:", average_precision_score(y_test, y_prob))
+    print("false_negative rate")
+    print(1 - recall_score(y_test, y_pred))
+    print("false_positive_rate")
+    print(1 - precision_score(y_test, y_pred))
 
     print("Confusion matrix:")
     print(confusion_matrix(y_test, y_pred))
