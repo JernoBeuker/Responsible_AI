@@ -61,8 +61,8 @@ def evaluate_model(classifier, X_test, y_test, sensitive_data, threshold=False):
         print("Average precision:", average_precision_score(y_test, y_prob))
     print("false_negative rate")
     print(1 - recall_score(y_test, y_pred))
-    print("false_positive_rate")
-    print(1 - precision_score(y_test, y_pred))
+    print("precision")
+    print(precision_score(y_test, y_pred))
 
     print("Confusion matrix:")
     print(confusion_matrix(y_test, y_pred))
